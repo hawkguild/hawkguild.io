@@ -1,866 +1,603 @@
-const STORE_KEY = "mae-lamai-southern-pos.full.v1";
+const DEFAULT_USERS = [
+  { username: "admin", password: "admin123", role: "Admin" },
+  { username: "qc", password: "qc123", role: "QC" },
+  { username: "supervisor", password: "sup123", role: "Supervisor" },
+  { username: "viewer", password: "view123", role: "Viewer" }
+];
 
-const $ = (selector) => document.querySelector(selector);
-const $$ = (selector) => Array.from(document.querySelectorAll(selector));
-
-const demo = {
-  shop: {
-    name: "แกงใต้แม่ละม้ายเมืองคอน",
-    branch: "สาขานครศรีธรรมราช",
-    address: "ตลาดเมืองคอน อ.เมือง จ.นครศรีธรรมราช",
-    phone: "075-000-999",
-    taxId: "0800000000000",
-    serviceRate: 0,
-    taxRate: 7
-  },
-  receipt: {
-    title: "ใบเสร็จรับเงิน",
-    posId: "POS-01",
-    headerNote: "อาหารใต้รสจัดจ้าน ปรุงสดทุกจาน",
-    footerNote: "ขอบคุณที่อุดหนุน แวะมาใหม่เด้อ"
-  },
-  tables: [
-    { id: "T1", name: "โต๊ะ 1" },
-    { id: "T2", name: "โต๊ะ 2" },
-    { id: "T3", name: "โต๊ะ 3" },
-    { id: "TA", name: "กลับบ้าน" },
-    { id: "DL", name: "เดลิเวอรี" },
-    { id: "SF", name: "ShopeeFood", online: true, platform: "ShopeeFood", color: "#ee4d2d" },
-    { id: "LM", name: "LINE MAN", online: true, platform: "LINE MAN", color: "#06c755" }
+const SEED = {
+  users: structuredClone(DEFAULT_USERS),
+  assets: [
+    { id: "AST-1001", name: "โน้ตบุ๊ก Dell Latitude", category: "ครุภัณฑ์ IT", location: "ชั้น 2 / แผนกบัญชี", owner: "ฝ่ายบัญชี", status: "รอตรวจ" },
+    { id: "AST-1002", name: "เครื่องพิมพ์ HP LaserJet", category: "อุปกรณ์สำนักงาน", location: "ชั้น 1 / ธุรการ", owner: "ธุรการ", status: "กำลังตรวจ" },
+    { id: "AST-1003", name: "โปรเจคเตอร์ Epson", category: "ห้องประชุม", location: "ห้องประชุม A", owner: "ส่วนกลาง", status: "ผ่าน" },
+    { id: "PRD-2001", name: "ชุดชิ้นงาน Lot A-07", category: "สินค้า QC", location: "คลังสินค้า QC", owner: "Production", status: "รอตรวจ" }
   ],
-  sellers: [
-    { id: uid(), name: "แม่ละม้าย", role: "เจ้าของร้าน", shiftStart: "08:00", shiftEnd: "16:00", active: true },
-    { id: uid(), name: "น้องบ่าว", role: "แคชเชียร์", shiftStart: "16:00", shiftEnd: "22:00", active: false }
+  inspections: [
+    { date: "2026-07-07 09:20", assetId: "AST-1003", assetName: "โปรเจคเตอร์ Epson", result: "Pass", status: "ผ่าน", condition: "ปกติ", score: 98, inspector: "สมชาย", approver: "หัวหน้าแผนก", notes: "พร้อมใช้งาน", checks: 4, gps: "13.7563, 100.5018" },
+    { date: "2026-07-08 14:10", assetId: "AST-1002", assetName: "เครื่องพิมพ์ HP LaserJet", result: "Fail", status: "ไม่ผ่าน", condition: "รอซ่อม", score: 62, inspector: "มาลี", approver: "", notes: "กระดาษติดบ่อย", checks: 2, gps: "13.7563, 100.5018" }
   ],
-  activeSellerId: "",
-  menu: [
-    { id: uid(), name: "แกงไตปลา", category: "แกงใต้", price: 120, available: true, image: "" },
-    { id: uid(), name: "แกงเหลืองปลากะพง", category: "แกงใต้", price: 160, available: true, image: "" },
-    { id: uid(), name: "คั่วกลิ้งหมู", category: "ผัด/คั่ว", price: 130, available: true, image: "" },
-    { id: uid(), name: "สะตอผัดกะปิกุ้ง", category: "ผัด/คั่ว", price: 180, available: true, image: "" },
-    { id: uid(), name: "ใบเหลียงผัดไข่", category: "ผัด/คั่ว", price: 95, available: true, image: "" },
-    { id: uid(), name: "หมูฮ้องเมืองคอน", category: "กับข้าว", price: 150, available: true, image: "" },
-    { id: uid(), name: "ปลาทรายทอดขมิ้น", category: "ทอด", price: 140, available: true, image: "" },
-    { id: uid(), name: "ข้าวยำปักษ์ใต้", category: "จานเดียว", price: 85, available: true, image: "" },
-    { id: uid(), name: "ข้าวสวย", category: "ข้าว", price: 15, available: true, image: "" },
-    { id: uid(), name: "ชาเย็น", category: "เครื่องดื่ม", price: 35, available: true, image: "" }
+  defects: [
+    { id: 1, assetId: "AST-1002", type: "ชำรุด", cause: "อุปกรณ์เสื่อม", note: "ลูกยางดึงกระดาษเสื่อม", resolved: false, date: "2026-07-08 14:12" }
   ],
-  stock: [
-    { id: uid(), name: "พริกแกงไตปลา", qty: 5, unit: "กก.", cost: 190, reorder: 2 },
-    { id: uid(), name: "ปลากะพง", qty: 8, unit: "กก.", cost: 220, reorder: 3 },
-    { id: uid(), name: "สะตอ", qty: 12, unit: "ถุง", cost: 45, reorder: 5 },
-    { id: uid(), name: "ใบเหลียง", qty: 7, unit: "มัด", cost: 35, reorder: 4 },
-    { id: uid(), name: "กะปิ", qty: 4, unit: "กก.", cost: 95, reorder: 2 },
-    { id: uid(), name: "ข้าวสาร", qty: 30, unit: "กก.", cost: 28, reorder: 10 }
+  defectTypes: ["ชำรุด", "สูญหาย", "เอกสารไม่ตรง", "ใช้งานไม่ได้", "อื่น ๆ"],
+  checklistStandards: [
+    "ป้าย QR/Barcode อ่านได้",
+    "สภาพภายนอกสมบูรณ์",
+    "ใช้งานได้ตามมาตรฐาน",
+    "ตำแหน่งตรงกับทะเบียนทรัพย์สิน"
   ],
-  tickets: {},
-  orders: []
+  queue: []
 };
 
 let state = loadState();
-let route = "dashboard";
-let category = "ทั้งหมด";
-let activeTableId = state.tables[0]?.id || "TA";
-let payMethod = "เงินสด";
-let menuImageDraft = "";
+let currentUser = null;
+let selectedAssetId = state.assets[0]?.id || "";
+let currentGps = "";
 
-function uid() {
-  return Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-5);
-}
-
-function clone(value) {
-  return JSON.parse(JSON.stringify(value));
-}
+const $ = (id) => document.getElementById(id);
 
 function loadState() {
+  const saved = localStorage.getItem("qcState");
+  if (!saved) {
+    localStorage.setItem("qcState", JSON.stringify(SEED));
+    return structuredClone(SEED);
+  }
   try {
-    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
-    if (!saved) {
-      const fresh = clone(demo);
-      fresh.activeSellerId = fresh.sellers.find((seller) => seller.active)?.id || fresh.sellers[0]?.id || "";
-      return fresh;
-    }
-    return normalize({ ...clone(demo), ...saved });
+    return migrateState(JSON.parse(saved));
   } catch {
-    return clone(demo);
+    return structuredClone(SEED);
   }
 }
 
-function normalize(data) {
-  data.shop = { ...clone(demo.shop), ...(data.shop || {}) };
-  data.receipt = { ...clone(demo.receipt), ...(data.receipt || {}) };
-  data.tables = data.tables?.length ? data.tables : clone(demo.tables);
-  [
-    { id: "SF", name: "ShopeeFood", online: true, platform: "ShopeeFood", color: "#ee4d2d" },
-    { id: "LM", name: "LINE MAN", online: true, platform: "LINE MAN", color: "#06c755" }
-  ].forEach((channel) => {
-    const existing = data.tables.find((table) => table.id === channel.id);
-    if (existing) Object.assign(existing, channel);
-    else data.tables.push(channel);
-  });
-  data.sellers = (data.sellers?.length ? data.sellers : clone(demo.sellers)).map((seller) => ({ active: false, ...seller }));
-  data.menu = (data.menu?.length ? data.menu : clone(demo.menu)).map((item) => ({ image: "", available: true, ...item }));
-  data.stock = (data.stock?.length ? data.stock : clone(demo.stock)).map((item) => ({ cost: 0, reorder: 0, ...item }));
-  data.tickets = data.tickets || {};
-  data.orders = data.orders || [];
-  data.activeSellerId = data.activeSellerId || data.sellers.find((seller) => seller.active)?.id || data.sellers[0]?.id || "";
-  return data;
+function migrateState(data) {
+  return {
+    ...structuredClone(SEED),
+    ...data,
+    users: Array.isArray(data.users) && data.users.length ? data.users : structuredClone(DEFAULT_USERS),
+    assets: Array.isArray(data.assets) ? data.assets : structuredClone(SEED.assets),
+    inspections: Array.isArray(data.inspections) ? data.inspections : [],
+    defects: Array.isArray(data.defects) ? data.defects : [],
+    defectTypes: Array.isArray(data.defectTypes) && data.defectTypes.length ? data.defectTypes : structuredClone(SEED.defectTypes),
+    checklistStandards: Array.isArray(data.checklistStandards) && data.checklistStandards.length ? data.checklistStandards : structuredClone(SEED.checklistStandards),
+    queue: Array.isArray(data.queue) ? data.queue : []
+  };
 }
 
 function saveState() {
-  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  localStorage.setItem("qcState", JSON.stringify(state));
 }
 
-function money(value) {
-  return new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" }).format(Number(value) || 0);
+function showToast(message) {
+  const toast = $("toast");
+  toast.textContent = message;
+  toast.classList.remove("hidden");
+  window.setTimeout(() => toast.classList.add("hidden"), 3200);
 }
 
-function timeText(value = new Date()) {
-  return new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short" }).format(value);
-}
-
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function esc(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-  })[char]);
+function nowText() {
+  return new Date().toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
 }
 
 function init() {
+  $("todayText").textContent = new Date().toLocaleDateString("th-TH", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   bindEvents();
-  setRoute(route);
+  hydrateSelects();
+  renderAll();
 }
 
 function bindEvents() {
-  $$(".nav button").forEach((button) => button.addEventListener("click", () => setRoute(button.dataset.route)));
-  $$("[data-route-shortcut]").forEach((button) => button.addEventListener("click", () => setRoute(button.dataset.routeShortcut)));
-  $("#searchInput").addEventListener("input", renderCurrent);
-  $("#tableSelect").addEventListener("change", (event) => {
-    activeTableId = event.target.value;
-    renderBill();
+  $("loginForm").addEventListener("submit", login);
+  $("logoutBtn").addEventListener("click", logout);
+  document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => switchView(button.dataset.view)));
+  $("scanBtn").addEventListener("click", scanAsset);
+  $("scanInput").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") scanAsset();
   });
-  $("#sellerSelect").addEventListener("change", (event) => {
-    state.activeSellerId = event.target.value;
-    saveState();
-    renderSellers();
-    renderHeader();
+  $("assetSelect").addEventListener("change", (event) => {
+    selectedAssetId = event.target.value;
+    renderSelectedAsset();
   });
-  $("#discountInput").addEventListener("input", (event) => {
-    getTicket().discount = Number(event.target.value) || 0;
-    saveState();
-    renderBill();
+  $("inspectionForm").addEventListener("submit", saveInspection);
+  $("inspectionAssetAdminForm").addEventListener("submit", saveInspectionAsset);
+  $("checklistAdminForm").addEventListener("submit", saveChecklistItem);
+  $("resultSelect").addEventListener("change", updateResultBadge);
+  $("gpsBtn").addEventListener("click", captureGps);
+  $("defectForm").addEventListener("submit", saveDefect);
+  $("assetAdminForm").addEventListener("submit", saveAsset);
+  $("defectTypeAdminForm").addEventListener("submit", saveDefectType);
+  $("userAdminForm").addEventListener("submit", saveUser);
+  $("defectFilter").addEventListener("change", renderDefects);
+  $("chartMode").addEventListener("change", renderChart);
+  $("reportSearch").addEventListener("input", renderReports);
+  $("exportCsvBtn").addEventListener("click", exportCsv);
+  $("printBtn").addEventListener("click", () => window.print());
+  $("backupBtn").addEventListener("click", backupJson);
+  $("restoreInput").addEventListener("change", restoreJson);
+  $("seedBtn").addEventListener("click", resetSeed);
+  $("syncBtn").addEventListener("click", syncQueue);
+  $("notifyBtn").addEventListener("click", () => {
+    const open = state.defects.filter((item) => !item.resolved).length;
+    showToast(open ? `มีงานไม่ผ่าน/ข้อบกพร่องค้างอยู่ ${open} รายการ` : "ไม่มีแจ้งเตือนค้างอยู่");
   });
-  $("#paidInput").addEventListener("input", renderBill);
-  $("#payTabs").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-pay]");
-    if (!button) return;
-    payMethod = button.dataset.pay;
-    renderBill();
-  });
-  $("#clearBillBtn").addEventListener("click", clearBill);
-  $("#checkoutBtn").addEventListener("click", checkout);
-  $("#shopForm").addEventListener("submit", saveShop);
-  $("#receiptForm").addEventListener("submit", saveReceipt);
-  $("#newMenuBtn").addEventListener("click", () => openMenuDialog());
-  $("#newStockBtn").addEventListener("click", () => openStockDialog());
-  $("#newSellerBtn").addEventListener("click", () => openSellerDialog());
-  $("#menuForm").addEventListener("submit", saveMenu);
-  $("#stockForm").addEventListener("submit", saveStock);
-  $("#sellerForm").addEventListener("submit", saveSeller);
-  $$("[data-close-dialog]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
-  $("#menuForm").elements.imageFile.addEventListener("change", readMenuImage);
-  $("#backupBtn").addEventListener("click", backup);
-  $("#restoreInput").addEventListener("change", restore);
-  $("#printReportBtn").addEventListener("click", () => window.print());
 }
 
-function setRoute(next) {
-  route = next;
-  $$(".nav button").forEach((button) => button.classList.toggle("active", button.dataset.route === next));
-  $$(".view").forEach((view) => view.classList.toggle("active", view.id === `view-${next}`));
-  const meta = {
-    dashboard: ["Dashboard", "สรุปยอดขายและ Stock คงเหลือ"],
-    pos: ["ขายหน้าร้าน", "เลือกเมนู รับออเดอร์ และปิดบิล"],
-    online: ["ออเดอร์ออนไลน์", "รับบิลจาก ShopeeFood และ LINE MAN"],
-    orders: ["บิลและรายงาน", "ยอดขาย ประวัติบิล และใบเสร็จย้อนหลัง"],
-    shop: ["จัดการร้านค้า", "ตั้งค่าข้อมูลร้าน ภาษี และค่าบริการ"],
-    receipt: ["หัวบิล", "ตั้งค่าหัวบิลและข้อความท้ายใบเสร็จ"],
-    stock: ["Stock", "วัตถุดิบ ต้นทุน มูลค่าคงเหลือ และจุดสั่งซื้อ"],
-    sellers: ["ผู้ขายเข้ากะ", "จัดการพนักงานขายและกะทำงาน"],
-    menu: ["จัดการเมนู", "เพิ่มเมนู ราคา หมวด และรูปอาหาร"]
-  };
-  $("#pageTitle").textContent = meta[next][0];
-  $("#pageSubtitle").textContent = meta[next][1];
-  renderCurrent();
-}
-
-function render() {
-  renderHeader();
-  renderCurrent();
-}
-
-function renderCurrent() {
-  renderHeader();
-  renderSelects();
-  if (route === "dashboard") renderDashboard();
-  if (route === "pos") {
-    renderCategories();
-    renderMenuCards();
-    renderBill();
+function login(event) {
+  event.preventDefault();
+  const username = $("username").value.trim();
+  const password = $("password").value;
+  const user = state.users.find((item) => item.username === username && item.password === password);
+  if (!user) {
+    showToast("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+    return;
   }
-  if (route === "online") renderOnline();
-  if (route === "orders") renderOrders();
-  if (route === "shop") renderShopForm();
-  if (route === "receipt") renderReceiptForm();
-  if (route === "stock") renderStock();
-  if (route === "sellers") renderSellers();
-  if (route === "menu") renderMenuTable();
+  currentUser = user;
+  $("loginScreen").classList.add("hidden");
+  $("appShell").classList.remove("hidden");
+  $("roleBadge").textContent = user.role;
+  applyRoleAccess();
+  showToast(`เข้าสู่ระบบในสิทธิ์ ${user.role}`);
 }
 
-function dashboardNumbers() {
-  const todayOrders = state.orders.filter((order) => order.closedAt.slice(0, 10) === todayKey());
-  const sales = todayOrders.reduce((sum, order) => sum + order.totals.total, 0);
-  const onlineSales = todayOrders
-    .filter((order) => order.channelName || ["ShopeeFood", "LINE MAN"].includes(order.tableName))
-    .reduce((sum, order) => sum + order.totals.total, 0);
-  const stockValue = state.stock.reduce((sum, item) => sum + (Number(item.qty) || 0) * (Number(item.cost) || 0), 0);
-  const lowStock = state.stock.filter((item) => (Number(item.qty) || 0) <= (Number(item.reorder) || 0));
-  return { todayOrders, sales, onlineSales, stockValue, lowStock };
+function logout() {
+  currentUser = null;
+  $("appShell").classList.add("hidden");
+  $("loginScreen").classList.remove("hidden");
+}
+
+function applyRoleAccess() {
+  const readOnly = currentUser?.role === "Viewer";
+  const isAdmin = currentUser?.role === "Admin";
+  document.querySelectorAll("form button, form input, form select, form textarea").forEach((el) => {
+    if (el.closest("#loginForm")) return;
+    el.disabled = readOnly;
+  });
+  document.querySelectorAll(".admin-only").forEach((el) => {
+    el.classList.toggle("hidden", !isAdmin);
+    el.querySelectorAll("button, input, select, textarea").forEach((field) => {
+      field.disabled = !isAdmin;
+    });
+  });
+  $("exportCsvBtn").disabled = false;
+  $("printBtn").disabled = false;
+}
+
+function switchView(view) {
+  document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+  document.querySelectorAll(".view").forEach((section) => section.classList.toggle("active", section.id === view));
+  $("viewTitle").textContent = document.querySelector(`[data-view="${view}"]`).textContent;
+}
+
+function hydrateSelects() {
+  const options = state.assets.map((asset) => `<option value="${asset.id}">${asset.id} - ${asset.name}</option>`).join("");
+  const typeOptions = state.defectTypes.map((type) => `<option>${type}</option>`).join("");
+  $("assetSelect").innerHTML = options;
+  $("defectAssetSelect").innerHTML = options;
+  $("defectType").innerHTML = typeOptions;
+  $("assetSelect").value = selectedAssetId;
+}
+
+function renderAll() {
+  hydrateSelects();
+  renderDashboard();
+  renderChart();
+  renderRanking();
+  renderSelectedAsset();
+  renderDefects();
+  renderReports();
+  renderAssets();
+  renderDefectTypes();
+  renderUsers();
+  renderChecklistStandards();
+  updateSyncState();
+}
+
+function scanAsset() {
+  const code = $("scanInput").value.trim().toUpperCase();
+  const asset = state.assets.find((item) => item.id.toUpperCase() === code);
+  if (!asset) {
+    showToast("ไม่พบข้อมูลสินค้าหรือทรัพย์สินตามรหัสนี้");
+    return;
+  }
+  selectedAssetId = asset.id;
+  $("assetSelect").value = asset.id;
+  renderSelectedAsset();
+  switchView("scanner");
+  showToast(`ดึงข้อมูล ${asset.id} สำเร็จ`);
+}
+
+function renderSelectedAsset() {
+  const asset = state.assets.find((item) => item.id === selectedAssetId);
+  if (!asset) return;
+  $("selectedAssetBadge").textContent = `${asset.id} / ${asset.status}`;
+  $("assetDetails").classList.remove("empty");
+  $("assetDetails").innerHTML = `
+    <div class="list-item"><strong>${asset.id}</strong>${asset.name}</div>
+    <div class="list-item"><strong>ประเภท</strong>${asset.category}</div>
+    <div class="list-item"><strong>ที่ตั้ง</strong>${asset.location}</div>
+    <div class="list-item"><strong>ผู้รับผิดชอบ</strong>${asset.owner}</div>
+    <div class="list-item"><strong>สถานะล่าสุด</strong>${asset.status}</div>
+  `;
+}
+
+function updateResultBadge() {
+  const result = $("resultSelect").value;
+  const badge = $("selectedAssetBadge");
+  badge.classList.remove("pass", "fail", "neutral");
+  badge.classList.add(result === "Pass" ? "pass" : "fail");
+}
+
+function saveInspection(event) {
+  event.preventDefault();
+  const asset = state.assets.find((item) => item.id === $("assetSelect").value);
+  if (!asset) {
+    showToast("กรุณาเพิ่มหรือเลือกทรัพย์สินก่อนบันทึกการตรวจ");
+    return;
+  }
+  const checkCount = [...document.querySelectorAll(".checkItem")].filter((item) => item.checked).length;
+  const inspection = {
+    date: nowText(),
+    assetId: asset.id,
+    assetName: asset.name,
+    result: $("resultSelect").value,
+    status: $("statusSelect").value,
+    condition: $("conditionSelect").value,
+    score: Number($("scoreInput").value || 0),
+    inspector: $("inspectorSign").value.trim(),
+    approver: $("approverSign").value.trim(),
+    notes: $("notesInput").value.trim(),
+    checks: checkCount,
+    gps: currentGps || "ไม่ได้บันทึก"
+  };
+  state.inspections.unshift(inspection);
+  asset.status = inspection.status;
+  state.queue.push({ type: "inspection", date: inspection.date, assetId: asset.id });
+  if (inspection.result === "Fail") {
+    state.defects.unshift({
+      id: Date.now(),
+      assetId: asset.id,
+      type: inspection.condition,
+      cause: "ผลตรวจไม่ผ่าน",
+      note: inspection.notes || "ต้องตรวจสอบเพิ่มเติม",
+      resolved: false,
+      date: inspection.date
+    });
+    showToast("บันทึกงานไม่ผ่านและแจ้งเตือนผู้รับผิดชอบแล้ว");
+  } else {
+    showToast("บันทึกผลตรวจสำเร็จ");
+  }
+  saveState();
+  renderAll();
+}
+
+function saveInspectionAsset(event) {
+  event.preventDefault();
+  if (currentUser?.role !== "Admin") {
+    showToast("เฉพาะ Admin เท่านั้นที่เพิ่มรหัสทรัพย์สินได้");
+    return;
+  }
+  const id = $("quickAssetId").value.trim().toUpperCase();
+  if (state.assets.some((asset) => asset.id.toUpperCase() === id)) {
+    showToast("รหัสทรัพย์สินนี้มีอยู่แล้ว");
+    return;
+  }
+  const name = $("quickAssetName").value.trim() || `ทรัพย์สิน ${id}`;
+  const asset = {
+    id,
+    name,
+    category: "เพิ่มจากหน้า Inspection",
+    location: "ยังไม่ระบุ",
+    owner: currentUser.username,
+    status: "รอตรวจ"
+  };
+  state.assets.unshift(asset);
+  selectedAssetId = asset.id;
+  state.queue.push({ type: "asset", date: nowText(), assetId: asset.id });
+  saveState();
+  event.target.reset();
+  renderAll();
+  $("assetSelect").value = asset.id;
+  showToast(`เพิ่มและเลือกทรัพย์สิน ${asset.id} แล้ว`);
+}
+
+function saveChecklistItem(event) {
+  event.preventDefault();
+  if (currentUser?.role !== "Admin") {
+    showToast("เฉพาะ Admin เท่านั้นที่เพิ่มเช็กลิสต์มาตรฐานได้");
+    return;
+  }
+  const item = $("newChecklistItem").value.trim();
+  if (state.checklistStandards.some((standard) => standard.toLowerCase() === item.toLowerCase())) {
+    showToast("เช็กลิสต์นี้มีอยู่แล้ว");
+    return;
+  }
+  state.checklistStandards.push(item);
+  state.queue.push({ type: "checklist", date: nowText(), value: item });
+  saveState();
+  event.target.reset();
+  renderAll();
+  showToast(`เพิ่มเช็กลิสต์ "${item}" แล้ว`);
+}
+
+function captureGps() {
+  const setFallback = () => {
+    currentGps = "13.7563, 100.5018";
+    $("gpsText").textContent = `${currentGps} / ${nowText()}`;
+    showToast("บันทึกพิกัดจำลองแล้ว");
+  };
+  if (!navigator.geolocation) {
+    setFallback();
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      currentGps = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+      $("gpsText").textContent = `${currentGps} / ${nowText()}`;
+      showToast("บันทึก GPS และเวลาแล้ว");
+    },
+    setFallback,
+    { timeout: 4000 }
+  );
+}
+
+function saveDefect(event) {
+  event.preventDefault();
+  state.defects.unshift({
+    id: Date.now(),
+    assetId: $("defectAssetSelect").value,
+    type: $("defectType").value,
+    cause: $("defectCause").value.trim(),
+    note: $("defectNote").value.trim(),
+    resolved: false,
+    date: nowText()
+  });
+  state.queue.push({ type: "defect", date: nowText(), assetId: $("defectAssetSelect").value });
+  event.target.reset();
+  saveState();
+  renderAll();
+  showToast("เพิ่มข้อบกพร่องและแจ้งเตือนผู้รับผิดชอบแล้ว");
+}
+
+function saveAsset(event) {
+  event.preventDefault();
+  if (currentUser?.role !== "Admin") {
+    showToast("เฉพาะ Admin เท่านั้นที่เพิ่มทรัพย์สินได้");
+    return;
+  }
+  const id = $("newAssetId").value.trim().toUpperCase();
+  if (state.assets.some((asset) => asset.id.toUpperCase() === id)) {
+    showToast("รหัสทรัพย์สินนี้มีอยู่แล้ว");
+    return;
+  }
+  const asset = {
+    id,
+    name: $("newAssetName").value.trim(),
+    category: $("newAssetCategory").value.trim(),
+    location: $("newAssetLocation").value.trim(),
+    owner: $("newAssetOwner").value.trim(),
+    status: $("newAssetStatus").value
+  };
+  state.assets.unshift(asset);
+  selectedAssetId = asset.id;
+  state.queue.push({ type: "asset", date: nowText(), assetId: asset.id });
+  saveState();
+  event.target.reset();
+  renderAll();
+  showToast(`เพิ่มทรัพย์สิน ${asset.id} แล้ว`);
+}
+
+function saveDefectType(event) {
+  event.preventDefault();
+  if (currentUser?.role !== "Admin") {
+    showToast("เฉพาะ Admin เท่านั้นที่เพิ่มประเภทปัญหาได้");
+    return;
+  }
+  const type = $("newDefectType").value.trim();
+  if (state.defectTypes.some((item) => item.toLowerCase() === type.toLowerCase())) {
+    showToast("ประเภทปัญหานี้มีอยู่แล้ว");
+    return;
+  }
+  state.defectTypes.push(type);
+  state.queue.push({ type: "defectType", date: nowText(), value: type });
+  saveState();
+  event.target.reset();
+  renderAll();
+  $("defectType").value = type;
+  showToast(`เพิ่มประเภทปัญหา "${type}" แล้ว`);
+}
+
+function saveUser(event) {
+  event.preventDefault();
+  if (currentUser?.role !== "Admin") {
+    showToast("เฉพาะ Admin เท่านั้นที่เพิ่ม User ได้");
+    return;
+  }
+  const username = $("newUsername").value.trim();
+  const password = $("newUserPassword").value;
+  const role = $("newUserRole").value;
+  if (state.users.some((user) => user.username.toLowerCase() === username.toLowerCase())) {
+    showToast("Username นี้มีอยู่แล้ว");
+    return;
+  }
+  state.users.push({ username, password, role });
+  state.queue.push({ type: "user", date: nowText(), username, role });
+  saveState();
+  event.target.reset();
+  renderAll();
+  showToast(`เพิ่ม User ${username} สิทธิ์ ${role} แล้ว`);
+}
+
+function renderDefects() {
+  const filter = $("defectFilter").value;
+  const defects = state.defects.filter((item) => filter === "all" || (filter === "open" ? !item.resolved : item.resolved));
+  $("defectList").innerHTML = defects.length
+    ? defects.map((item) => `
+      <article class="list-item">
+        <strong>${item.assetId} / ${item.type}</strong>
+        <span>${item.cause} - ${item.note || "ไม่มีหมายเหตุ"}</span>
+        <p class="hint">${item.date} / ${item.resolved ? "แก้ไขแล้ว" : "ยังไม่แก้ไข"}</p>
+        <button class="secondary" onclick="toggleDefect(${item.id})">${item.resolved ? "เปิดใหม่" : "ทำเครื่องหมายแก้ไขแล้ว"}</button>
+      </article>
+    `).join("")
+    : `<div class="details empty">ไม่มีรายการ</div>`;
+}
+
+function toggleDefect(id) {
+  const defect = state.defects.find((item) => item.id === id);
+  if (!defect) return;
+  defect.resolved = !defect.resolved;
+  saveState();
+  renderAll();
 }
 
 function renderDashboard() {
-  const { todayOrders, sales, onlineSales, stockValue, lowStock } = dashboardNumbers();
-  $("#dashSales").textContent = money(sales);
-  $("#dashBills").textContent = `${todayOrders.length} บิล`;
-  $("#dashOnlineSales").textContent = money(onlineSales);
-  $("#dashStockValue").textContent = money(stockValue);
-  $("#dashStockItems").textContent = `${state.stock.length} รายการ`;
-  $("#dashLowStock").textContent = lowStock.length;
-
-  const channels = new Map();
-  todayOrders.forEach((order) => {
-    const key = order.channelName || order.tableName || "หน้าร้าน";
-    const item = channels.get(key) || { bills: 0, sales: 0 };
-    item.bills += 1;
-    item.sales += order.totals.total;
-    channels.set(key, item);
-  });
-  $("#channelSummary").innerHTML = [...channels.entries()]
-    .sort((a, b) => b[1].sales - a[1].sales)
-    .map(([name, item]) => `
-      <div class="summary-row">
-        <span>${esc(name)}<small>${item.bills} บิล</small></span>
-        <strong>${money(item.sales)}</strong>
-      </div>
-    `).join("") || `<p class="empty">ยังไม่มียอดขายวันนี้</p>`;
-
-  const menuMap = new Map();
-  state.orders.forEach((order) => order.items.forEach((item) => {
-    const row = menuMap.get(item.name) || { qty: 0, sales: 0 };
-    row.qty += item.qty;
-    row.sales += item.qty * item.price;
-    menuMap.set(item.name, row);
-  }));
-  $("#bestSellerSummary").innerHTML = [...menuMap.entries()]
-    .sort((a, b) => b[1].qty - a[1].qty)
-    .slice(0, 6)
-    .map(([name, item]) => `
-      <div class="summary-row">
-        <span>${esc(name)}<small>${item.qty} จาน</small></span>
-        <strong>${money(item.sales)}</strong>
-      </div>
-    `).join("") || `<p class="empty">ยังไม่มีประวัติขาย</p>`;
-
-  $("#dashboardStockTable").innerHTML = state.stock
-    .slice()
-    .sort((a, b) => {
-      const alow = (Number(a.qty) || 0) <= (Number(a.reorder) || 0) ? 0 : 1;
-      const blow = (Number(b.qty) || 0) <= (Number(b.reorder) || 0) ? 0 : 1;
-      return alow - blow || a.name.localeCompare(b.name, "th");
-    })
-    .map((item) => {
-      const qty = Number(item.qty) || 0;
-      const reorder = Number(item.reorder) || 0;
-      const cost = Number(item.cost) || 0;
-      const low = qty <= reorder;
-      return `
-        <tr>
-          <td><strong>${esc(item.name)}</strong></td>
-          <td>${qty} ${esc(item.unit)}</td>
-          <td>${money(cost)}</td>
-          <td>${money(qty * cost)}</td>
-          <td><span class="pill ${low ? "warn" : "ok"}">${low ? "ควรสั่งซื้อ" : "เพียงพอ"}</span></td>
-        </tr>
-      `;
-    }).join("") || `<tr><td colspan="5">ยังไม่มีข้อมูล Stock</td></tr>`;
+  const total = state.inspections.length;
+  const pass = state.inspections.filter((item) => item.result === "Pass").length;
+  const fail = state.inspections.filter((item) => item.result === "Fail").length;
+  $("totalInspections").textContent = total;
+  $("passRate").textContent = total ? `${Math.round((pass / total) * 100)}%` : "0%";
+  $("failRate").textContent = total ? `${Math.round((fail / total) * 100)}%` : "0%";
+  $("openDefects").textContent = state.defects.filter((item) => !item.resolved).length;
 }
 
-function renderHeader() {
-  $$("[data-shop-name]").forEach((node) => node.textContent = state.shop.name);
-  $$("[data-branch]").forEach((node) => node.textContent = state.shop.branch || "ระบบ POS ร้านอาหาร");
-  const seller = state.sellers.find((item) => item.id === state.activeSellerId);
-  $("[data-current-seller]").textContent = seller?.name || "-";
-  $("[data-shift-time]").textContent = seller ? `${seller.shiftStart || "--:--"} - ${seller.shiftEnd || "--:--"}` : "-";
-}
-
-function renderSelects() {
-  $("#tableSelect").innerHTML = state.tables.map((table) => `<option value="${table.id}">${esc(table.name)}</option>`).join("");
-  if (!state.tables.some((table) => table.id === activeTableId)) activeTableId = state.tables[0]?.id || "";
-  $("#tableSelect").value = activeTableId;
-  const activeSellers = state.sellers.filter((seller) => seller.active);
-  const sellerSource = activeSellers.length ? activeSellers : state.sellers;
-  $("#sellerSelect").innerHTML = sellerSource.map((seller) => `<option value="${seller.id}">${esc(seller.name)}</option>`).join("");
-  if (!sellerSource.some((seller) => seller.id === state.activeSellerId)) state.activeSellerId = sellerSource[0]?.id || "";
-  $("#sellerSelect").value = state.activeSellerId;
-}
-
-function onlineTables() {
-  const required = [
-    { id: "SF", name: "ShopeeFood", online: true, platform: "ShopeeFood", color: "#ee4d2d" },
-    { id: "LM", name: "LINE MAN", online: true, platform: "LINE MAN", color: "#06c755" }
-  ];
-  required.forEach((channel) => {
-    if (!state.tables.some((table) => table.id === channel.id)) state.tables.push(channel);
-  });
-  return state.tables.filter((table) => table.online);
-}
-
-function renderOnline() {
-  const todayOrders = state.orders.filter((order) => order.closedAt.slice(0, 10) === todayKey());
-  $("#onlineChannels").innerHTML = onlineTables().map((channel) => {
-    const ticket = state.tickets[channel.id];
-    const orders = todayOrders.filter((order) => order.channelName === channel.platform || order.tableName === channel.name);
-    const sales = orders.reduce((sum, order) => sum + order.totals.total, 0);
-    return `
-      <div class="online-card" style="--channel:${esc(channel.color || "#d71920")}">
-        <div class="online-mark">${esc(channel.name.slice(0, 2))}</div>
-        <div>
-          <strong>${esc(channel.name)}</strong>
-          <span>${ticket?.items.length ? `มีบิลเปิด ${ticket.items.length} รายการ` : "พร้อมรับออเดอร์"}</span>
-        </div>
-        <div class="online-stats">
-          <div><small>บิลวันนี้</small><strong>${orders.length}</strong></div>
-          <div><small>ยอดขาย</small><strong>${money(sales)}</strong></div>
-        </div>
-        <button class="primary" data-start-online="${channel.id}">รับออเดอร์ช่องทางนี้</button>
-      </div>
-    `;
-  }).join("");
-  $$("[data-start-online]").forEach((button) => button.addEventListener("click", () => {
-    activeTableId = button.dataset.startOnline;
-    payMethod = "แพลตฟอร์ม";
-    getTicket();
-    saveState();
-    setRoute("pos");
-  }));
-}
-
-function renderCategories() {
-  const cats = ["ทั้งหมด", ...new Set(state.menu.map((item) => item.category).filter(Boolean))];
-  if (!cats.includes(category)) category = "ทั้งหมด";
-  $("#categoryTabs").innerHTML = cats.map((cat) => `<button class="${cat === category ? "active" : ""}" data-cat="${esc(cat)}">${esc(cat)}</button>`).join("");
-  $$("#categoryTabs button").forEach((button) => button.addEventListener("click", () => {
-    category = button.dataset.cat;
-    renderCategories();
-    renderMenuCards();
-  }));
-}
-
-function filteredMenu() {
-  const query = $("#searchInput").value.trim().toLowerCase();
-  return state.menu.filter((item) => {
-    const byCategory = category === "ทั้งหมด" || item.category === category;
-    const bySearch = !query || `${item.name} ${item.category}`.toLowerCase().includes(query);
-    return item.available && byCategory && bySearch;
-  });
-}
-
-function imageHtml(item, className = "") {
-  if (item.image) return `<img class="${className}" src="${item.image}" alt="${esc(item.name)}">`;
-  return `<div class="${className} food-img">รูปอาหาร</div>`;
-}
-
-function renderMenuCards() {
-  const items = filteredMenu();
-  $("#menuCards").innerHTML = items.map((item) => `
-    <button class="food-card" data-add-menu="${item.id}">
-      <div class="food-img">${item.image ? `<img src="${item.image}" alt="${esc(item.name)}">` : "รูปอาหาร"}</div>
-      <div class="food-body">
-        <small>${esc(item.category)}</small>
-        <strong>${esc(item.name)}</strong>
-        <span class="price">${money(item.price)}</span>
-      </div>
-    </button>
-  `).join("") || `<p class="empty">ไม่พบเมนู</p>`;
-  $$("[data-add-menu]").forEach((button) => button.addEventListener("click", () => addToCart(button.dataset.addMenu)));
-}
-
-function getTicket() {
-  if (!state.tickets[activeTableId]) {
-    state.tickets[activeTableId] = {
-      id: `B${Date.now().toString().slice(-8)}`,
-      tableId: activeTableId,
-      channelName: state.tables.find((table) => table.id === activeTableId)?.platform || "",
-      sellerId: state.activeSellerId,
-      discount: 0,
-      items: [],
-      openedAt: new Date().toISOString()
-    };
-  }
-  state.tickets[activeTableId].sellerId = state.activeSellerId;
-  state.tickets[activeTableId].channelName = state.tables.find((table) => table.id === activeTableId)?.platform || "";
-  return state.tickets[activeTableId];
-}
-
-function totals(ticket = getTicket()) {
-  const subtotal = ticket.items.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const discount = Math.min(Number(ticket.discount) || 0, subtotal);
-  const base = Math.max(subtotal - discount, 0);
-  const service = base * ((Number(state.shop.serviceRate) || 0) / 100);
-  const tax = (base + service) * ((Number(state.shop.taxRate) || 0) / 100);
-  return { subtotal, discount, service, tax, total: base + service + tax };
-}
-
-function addToCart(id) {
-  const menu = state.menu.find((item) => item.id === id);
-  if (!menu) return;
-  const ticket = getTicket();
-  const line = ticket.items.find((item) => item.menuId === id);
-  if (line) line.qty += 1;
-  else ticket.items.push({ menuId: id, name: menu.name, price: Number(menu.price), qty: 1 });
-  saveState();
-  renderBill();
-}
-
-function renderBill() {
-  const ticket = getTicket();
-  const total = totals(ticket);
-  $("#billNo").textContent = ticket.id;
-  $("#billQty").textContent = `${ticket.items.reduce((sum, item) => sum + item.qty, 0)} รายการ`;
-  $("#discountInput").value = ticket.discount || 0;
-  $("#cartItems").innerHTML = ticket.items.map((item, index) => `
-    <div class="cart-line">
-      <div><strong>${esc(item.name)}</strong><div>${money(item.price)} x ${item.qty}</div></div>
-      <div>
-        <strong>${money(item.price * item.qty)}</strong>
-        <div class="qty">
-          <button data-qty-index="${index}" data-delta="-1">-</button>
-          <span>${item.qty}</span>
-          <button data-qty-index="${index}" data-delta="1">+</button>
-        </div>
-      </div>
+function renderChart() {
+  const labels = $("chartMode").value === "monthly" ? ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค."] : ["จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส.", "อา."];
+  const values = labels.map((_, index) => Math.max(1, state.inspections.length + index - 2));
+  const max = Math.max(...values);
+  $("barChart").innerHTML = labels.map((label, index) => `
+    <div class="bar">
+      <div class="bar-fill" style="height:${Math.round((values[index] / max) * 220)}px"></div>
+      <span>${label}</span>
+      <strong>${values[index]}</strong>
     </div>
-  `).join("") || `<p class="empty">ยังไม่มีรายการในบิล</p>`;
-  $$("[data-qty-index]").forEach((button) => button.addEventListener("click", () => changeQty(Number(button.dataset.qtyIndex), Number(button.dataset.delta))));
-  $("#sumSub").textContent = money(total.subtotal);
-  $("#sumService").textContent = money(total.service);
-  $("#sumTax").textContent = money(total.tax);
-  $("#sumTotal").textContent = money(total.total);
-  $("#changeText").textContent = money(Math.max((Number($("#paidInput").value) || 0) - total.total, 0));
-  $$("#payTabs button").forEach((button) => button.classList.toggle("active", button.dataset.pay === payMethod));
+  `).join("");
 }
 
-function changeQty(index, delta) {
-  const ticket = getTicket();
-  const item = ticket.items[index];
-  if (!item) return;
-  item.qty += delta;
-  if (item.qty <= 0) ticket.items.splice(index, 1);
-  saveState();
-  renderBill();
+function renderRanking() {
+  const causes = state.defects.reduce((acc, item) => {
+    acc[item.cause] = (acc[item.cause] || 0) + 1;
+    return acc;
+  }, {});
+  const rows = Object.entries(causes).sort((a, b) => b[1] - a[1]);
+  $("causeRanking").innerHTML = rows.length
+    ? rows.map(([cause, count]) => `<li><strong>${cause}</strong><p class="hint">${count} ครั้ง</p></li>`).join("")
+    : `<li>ยังไม่มีข้อมูล</li>`;
 }
 
-function clearBill() {
-  const ticket = getTicket();
-  if (ticket.items.length && !confirm("ล้างรายการในบิลนี้?")) return;
-  delete state.tickets[activeTableId];
-  saveState();
-  renderBill();
-}
-
-function checkout() {
-  const ticket = getTicket();
-  if (!ticket.items.length) return alert("ยังไม่มีรายการในบิล");
-  const total = totals(ticket);
-  const paid = Number($("#paidInput").value) || total.total;
-  if (payMethod === "เงินสด" && paid < total.total) return alert("ยอดรับเงินน้อยกว่ายอดสุทธิ");
-  const table = state.tables.find((item) => item.id === activeTableId);
-  const seller = state.sellers.find((item) => item.id === state.activeSellerId);
-  const order = {
-    ...clone(ticket),
-    totals: total,
-    paid,
-    change: Math.max(paid - total.total, 0),
-    tableName: table?.name || activeTableId,
-    channelName: table?.platform || "",
-    sellerName: seller?.name || "-",
-    paymentMethod: payMethod,
-    closedAt: new Date().toISOString()
-  };
-  state.orders.unshift(order);
-  delete state.tickets[activeTableId];
-  $("#paidInput").value = "";
-  saveState();
-  buildReceipt(order);
-  renderCurrent();
-  setTimeout(() => window.print(), 100);
-}
-
-function buildReceipt(order) {
-  $("#printArea").innerHTML = `
-    <h2>${esc(state.shop.name)}</h2>
-    <div class="print-center">
-      <div>${esc(state.receipt.title)}</div>
-      <div>${esc(state.shop.branch || "")}</div>
-      <div>${esc(state.shop.address || "")}</div>
-      <div>โทร ${esc(state.shop.phone || "-")} | POS ${esc(state.receipt.posId || "-")}</div>
-      <div>เลขผู้เสียภาษี ${esc(state.shop.taxId || "-")}</div>
-      <div>${esc(state.receipt.headerNote || "")}</div>
-    </div>
-    <hr>
-    <div>เลขบิล ${esc(order.id)}</div>
-      <div>${esc(order.channelName || order.tableName)} | ผู้ขาย ${esc(order.sellerName)}</div>
-    <div>${timeText(new Date(order.closedAt))}</div>
-    <hr>
-    ${order.items.map((item) => `<div class="print-row"><span>${esc(item.name)} x ${item.qty}</span><span>${money(item.price * item.qty)}</span></div>`).join("")}
-    <hr>
-    <div class="print-row"><span>ยอดอาหาร</span><strong>${money(order.totals.subtotal)}</strong></div>
-    <div class="print-row"><span>ส่วนลด</span><strong>${money(order.totals.discount)}</strong></div>
-    <div class="print-row"><span>ค่าบริการ</span><strong>${money(order.totals.service)}</strong></div>
-    <div class="print-row"><span>ภาษี</span><strong>${money(order.totals.tax)}</strong></div>
-    <div class="print-row"><span>รวมสุทธิ</span><strong>${money(order.totals.total)}</strong></div>
-    <div class="print-row"><span>รับเงิน</span><strong>${money(order.paid)}</strong></div>
-    <div class="print-row"><span>เงินทอน</span><strong>${money(order.change)}</strong></div>
-    <hr>
-    <div class="print-center">${esc(state.receipt.footerNote || "ขอบคุณที่อุดหนุน")}</div>
-  `;
-}
-
-function renderOrders() {
-  const todayOrders = state.orders.filter((order) => order.closedAt.slice(0, 10) === todayKey());
-  const sales = todayOrders.reduce((sum, order) => sum + order.totals.total, 0);
-  $("#kpiSales").textContent = money(sales);
-  $("#kpiBills").textContent = todayOrders.length;
-  $("#kpiAvg").textContent = money(todayOrders.length ? sales / todayOrders.length : 0);
-  const menuMap = new Map();
-  state.orders.forEach((order) => order.items.forEach((item) => menuMap.set(item.name, (menuMap.get(item.name) || 0) + item.qty)));
-  const best = [...menuMap.entries()].sort((a, b) => b[1] - a[1])[0];
-  $("#kpiBest").textContent = best ? best[0] : "-";
-  const query = $("#searchInput").value.trim().toLowerCase();
-  const orders = state.orders.filter((order) => !query || `${order.id} ${order.tableName} ${order.sellerName}`.toLowerCase().includes(query));
-  $("#ordersTable").innerHTML = orders.map((order) => `
+function renderReports() {
+  const keyword = $("reportSearch").value.trim().toLowerCase();
+  const rows = state.inspections.filter((item) => JSON.stringify(item).toLowerCase().includes(keyword));
+  $("reportRows").innerHTML = rows.map((item) => `
     <tr>
-      <td>${timeText(new Date(order.closedAt))}</td>
-      <td>${esc(order.id)}</td>
-      <td>${esc(order.channelName || order.tableName)}</td>
-      <td>${esc(order.sellerName)}</td>
-      <td>${esc(order.paymentMethod)}</td>
-      <td>${money(order.totals.total)}</td>
-      <td class="row-actions"><button data-print-order="${order.id}">พิมพ์</button></td>
+      <td>${item.date}</td>
+      <td>${item.assetId}</td>
+      <td>${item.assetName}</td>
+      <td>${item.result}</td>
+      <td>${item.condition}</td>
+      <td>${item.score}</td>
+      <td>${item.inspector}</td>
     </tr>
-  `).join("") || `<tr><td colspan="7">ยังไม่มีประวัติบิล</td></tr>`;
-  $$("[data-print-order]").forEach((button) => button.addEventListener("click", () => {
-    const order = state.orders.find((item) => item.id === button.dataset.printOrder);
-    buildReceipt(order);
-    setTimeout(() => window.print(), 100);
-  }));
+  `).join("");
 }
 
-function renderShopForm() {
-  const form = $("#shopForm");
-  Object.entries(state.shop).forEach(([key, value]) => {
-    if (form.elements[key]) form.elements[key].value = value;
-  });
+function renderAssets() {
+  $("assetList").innerHTML = state.assets.map((asset) => `
+    <article class="list-item">
+      <strong>${asset.id} - ${asset.name}</strong>
+      <span>${asset.category} / ${asset.location}</span>
+      <p class="hint">${asset.owner} / ${asset.status}</p>
+    </article>
+  `).join("");
 }
 
-function saveShop(event) {
-  event.preventDefault();
-  const form = event.currentTarget.elements;
-  state.shop = {
-    name: form.name.value.trim(),
-    branch: form.branch.value.trim(),
-    phone: form.phone.value.trim(),
-    taxId: form.taxId.value.trim(),
-    address: form.address.value.trim(),
-    serviceRate: Number(form.serviceRate.value) || 0,
-    taxRate: Number(form.taxRate.value) || 0
-  };
-  saveState();
-  renderHeader();
-  alert("บันทึกข้อมูลร้านแล้ว");
+function renderDefectTypes() {
+  $("defectTypeList").innerHTML = state.defectTypes.map((type) => `
+    <article class="list-item">
+      <strong>${type}</strong>
+      <span class="hint">ใช้ได้ในฟอร์มบันทึกข้อบกพร่อง</span>
+    </article>
+  `).join("");
 }
 
-function renderReceiptForm() {
-  const form = $("#receiptForm");
-  Object.entries(state.receipt).forEach(([key, value]) => {
-    if (form.elements[key]) form.elements[key].value = value;
-  });
-  $("#receiptPreview").innerHTML = `
-    <strong>${esc(state.shop.name)}</strong><br>
-    ${esc(state.receipt.title)} | ${esc(state.receipt.posId)}<br>
-    ${esc(state.shop.address)}<br>
-    ${esc(state.receipt.headerNote)}<hr>
-    รายการอาหาร ...<br>
-    <strong>รวมสุทธิ ${money(0)}</strong><hr>
-    ${esc(state.receipt.footerNote)}
-  `;
+function renderUsers() {
+  $("userList").innerHTML = state.users.map((user) => `
+    <article class="list-item">
+      <strong>${user.username}</strong>
+      <span>สิทธิ์: ${user.role}</span>
+      <p class="hint">${user.username === "admin" ? "บัญชีหลักของระบบ" : "บัญชีที่สามารถเข้าสู่ระบบได้"}</p>
+    </article>
+  `).join("");
 }
 
-function saveReceipt(event) {
-  event.preventDefault();
-  const form = event.currentTarget.elements;
-  state.receipt = {
-    title: form.title.value.trim(),
-    posId: form.posId.value.trim(),
-    headerNote: form.headerNote.value.trim(),
-    footerNote: form.footerNote.value.trim()
-  };
-  saveState();
-  renderReceiptForm();
-  alert("บันทึกหัวบิลแล้ว");
+function renderChecklistStandards() {
+  $("checklistItems").innerHTML = state.checklistStandards.map((item, index) => `
+    <label>
+      <input type="checkbox" class="checkItem" data-check-index="${index}" checked />
+      ${item}
+    </label>
+  `).join("");
 }
 
-function renderStock() {
-  const query = $("#searchInput").value.trim().toLowerCase();
-  const items = state.stock.filter((item) => !query || item.name.toLowerCase().includes(query));
-  $("#stockCards").innerHTML = items.map((item) => {
-    const qty = Number(item.qty) || 0;
-    const reorder = Number(item.reorder) || 0;
-    const cost = Number(item.cost) || 0;
-    const low = qty <= reorder;
-    const max = Math.max(qty, reorder * 2, 1);
-    return `
-      <div class="stock-card ${low ? "low" : ""}">
-        <strong>${esc(item.name)}</strong>
-        <span class="pill ${low ? "warn" : "ok"}">${low ? "ควรสั่งซื้อ" : "เพียงพอ"}</span>
-        <div>คงเหลือ ${qty} ${esc(item.unit)} | ขั้นต่ำ ${reorder}</div>
-        <div>ต้นทุน ${money(cost)} / ${esc(item.unit)}</div>
-        <div>มูลค่าคงเหลือ ${money(qty * cost)}</div>
-        <div class="meter"><span style="width:${Math.min((qty / max) * 100, 100)}%"></span></div>
-        <div class="row-actions">
-          <button data-stock-delta="${item.id}" data-delta="-1">-1</button>
-          <button data-stock-delta="${item.id}" data-delta="1">+1</button>
-          <button data-edit-stock="${item.id}">แก้ไข</button>
-        </div>
-      </div>
-    `;
-  }).join("") || `<p class="empty">ยังไม่มีวัตถุดิบ</p>`;
-  $$("[data-stock-delta]").forEach((button) => button.addEventListener("click", () => {
-    const item = state.stock.find((stock) => stock.id === button.dataset.stockDelta);
-    item.qty = Math.max(0, (Number(item.qty) || 0) + Number(button.dataset.delta));
-    saveState();
-    renderStock();
-  }));
-  $$("[data-edit-stock]").forEach((button) => button.addEventListener("click", () => openStockDialog(button.dataset.editStock)));
+function exportCsv() {
+  const header = ["date", "assetId", "assetName", "result", "condition", "score", "inspector", "approver", "gps", "notes"];
+  const rows = state.inspections.map((item) => header.map((key) => `"${String(item[key] ?? "").replaceAll('"', '""')}"`).join(","));
+  const blob = new Blob([`\ufeff${header.join(",")}\n${rows.join("\n")}`], { type: "text/csv;charset=utf-8" });
+  downloadBlob(blob, `qc-report-${Date.now()}.csv`);
 }
 
-function openStockDialog(id = "") {
-  const form = $("#stockForm");
-  form.reset();
-  form.elements.id.value = id;
-  const item = state.stock.find((stock) => stock.id === id);
-  if (item) Object.entries(item).forEach(([key, value]) => {
-    if (form.elements[key]) form.elements[key].value = value;
-  });
-  $("#stockDialog").showModal();
-}
-
-function saveStock(event) {
-  event.preventDefault();
-  const form = event.currentTarget.elements;
-  const item = {
-    id: form.id.value || uid(),
-    name: form.name.value.trim(),
-    qty: Number(form.qty.value) || 0,
-    unit: form.unit.value.trim(),
-    cost: Number(form.cost.value) || 0,
-    reorder: Number(form.reorder.value) || 0
-  };
-  upsert(state.stock, item);
-  saveState();
-  $("#stockDialog").close();
-  renderStock();
-}
-
-function renderSellers() {
-  $("#sellerCards").innerHTML = state.sellers.map((seller) => `
-    <div class="seller-card">
-      <strong>${esc(seller.name)}</strong>
-      <span class="pill ${seller.active ? "ok" : ""}">${seller.active ? "อยู่ในกะ" : "ปิดกะ"}</span>
-      <div>${esc(seller.role || "-")}</div>
-      <div>${esc(seller.shiftStart || "--:--")} - ${esc(seller.shiftEnd || "--:--")}</div>
-      <div class="row-actions">
-        <button data-active-seller="${seller.id}">ใช้กะนี้</button>
-        <button data-toggle-seller="${seller.id}">${seller.active ? "ปิดกะ" : "เปิดกะ"}</button>
-        <button data-edit-seller="${seller.id}">แก้ไข</button>
-      </div>
-    </div>
-  `).join("") || `<p class="empty">ยังไม่มีผู้ขาย</p>`;
-  $$("[data-active-seller]").forEach((button) => button.addEventListener("click", () => {
-    state.activeSellerId = button.dataset.activeSeller;
-    saveState();
-    renderHeader();
-    renderSellers();
-  }));
-  $$("[data-toggle-seller]").forEach((button) => button.addEventListener("click", () => {
-    const seller = state.sellers.find((item) => item.id === button.dataset.toggleSeller);
-    seller.active = !seller.active;
-    saveState();
-    renderSellers();
-  }));
-  $$("[data-edit-seller]").forEach((button) => button.addEventListener("click", () => openSellerDialog(button.dataset.editSeller)));
-}
-
-function openSellerDialog(id = "") {
-  const form = $("#sellerForm");
-  form.reset();
-  form.elements.id.value = id;
-  const seller = state.sellers.find((item) => item.id === id);
-  if (seller) Object.entries(seller).forEach(([key, value]) => {
-    if (!form.elements[key]) return;
-    if (form.elements[key].type === "checkbox") form.elements[key].checked = Boolean(value);
-    else form.elements[key].value = value;
-  });
-  $("#sellerDialog").showModal();
-}
-
-function saveSeller(event) {
-  event.preventDefault();
-  const form = event.currentTarget.elements;
-  const seller = {
-    id: form.id.value || uid(),
-    name: form.name.value.trim(),
-    role: form.role.value.trim(),
-    shiftStart: form.shiftStart.value,
-    shiftEnd: form.shiftEnd.value,
-    active: form.active.checked
-  };
-  upsert(state.sellers, seller);
-  if (!state.activeSellerId) state.activeSellerId = seller.id;
-  saveState();
-  $("#sellerDialog").close();
-  renderSellers();
-  renderHeader();
-}
-
-function renderMenuTable() {
-  const query = $("#searchInput").value.trim().toLowerCase();
-  const items = state.menu.filter((item) => !query || `${item.name} ${item.category}`.toLowerCase().includes(query));
-  $("#menuTable").innerHTML = items.map((item) => `
-    <tr>
-      <td>${item.image ? `<img class="thumb" src="${item.image}" alt="${esc(item.name)}">` : `<div class="thumb"></div>`}</td>
-      <td><strong>${esc(item.name)}</strong></td>
-      <td>${esc(item.category)}</td>
-      <td>${money(item.price)}</td>
-      <td>${item.available ? "เปิดขาย" : "ปิดขาย"}</td>
-      <td class="row-actions">
-        <button data-edit-menu="${item.id}">แก้ไข</button>
-        <button data-toggle-menu="${item.id}">${item.available ? "ปิดขาย" : "เปิดขาย"}</button>
-      </td>
-    </tr>
-  `).join("") || `<tr><td colspan="6">ยังไม่มีเมนู</td></tr>`;
-  $$("[data-edit-menu]").forEach((button) => button.addEventListener("click", () => openMenuDialog(button.dataset.editMenu)));
-  $$("[data-toggle-menu]").forEach((button) => button.addEventListener("click", () => {
-    const item = state.menu.find((menu) => menu.id === button.dataset.toggleMenu);
-    item.available = !item.available;
-    saveState();
-    renderMenuTable();
-  }));
-}
-
-function openMenuDialog(id = "") {
-  const form = $("#menuForm");
-  form.reset();
-  menuImageDraft = "";
-  $("#menuImagePreview").style.display = "none";
-  form.elements.id.value = id;
-  const item = state.menu.find((menu) => menu.id === id);
-  if (item) {
-    Object.entries(item).forEach(([key, value]) => {
-      if (!form.elements[key]) return;
-      if (form.elements[key].type === "checkbox") form.elements[key].checked = Boolean(value);
-      else form.elements[key].value = value;
-    });
-    menuImageDraft = item.image || "";
-    if (menuImageDraft) {
-      $("#menuImagePreview").src = menuImageDraft;
-      $("#menuImagePreview").style.display = "block";
-    }
-  } else {
-    form.elements.available.checked = true;
-  }
-  $("#menuDialog").showModal();
-}
-
-function readMenuImage(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  if (file.size > 1024 * 1024 * 2) {
-    alert("แนะนำใช้รูปไม่เกิน 2 MB");
-  }
-  const reader = new FileReader();
-  reader.onload = () => {
-    menuImageDraft = reader.result;
-    $("#menuImagePreview").src = menuImageDraft;
-    $("#menuImagePreview").style.display = "block";
-  };
-  reader.readAsDataURL(file);
-}
-
-function saveMenu(event) {
-  event.preventDefault();
-  const form = event.currentTarget.elements;
-  const oldItem = state.menu.find((item) => item.id === form.id.value);
-  const item = {
-    id: form.id.value || uid(),
-    name: form.name.value.trim(),
-    category: form.category.value.trim(),
-    price: Number(form.price.value) || 0,
-    available: form.available.checked,
-    image: menuImageDraft || oldItem?.image || ""
-  };
-  upsert(state.menu, item);
-  saveState();
-  $("#menuDialog").close();
-  renderMenuTable();
-  if (route === "pos") renderMenuCards();
-}
-
-function upsert(list, item) {
-  const index = list.findIndex((entry) => entry.id === item.id);
-  if (index >= 0) list[index] = item;
-  else list.push(item);
-}
-
-function backup() {
+function backupJson() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  downloadBlob(blob, `qc-backup-${Date.now()}.json`);
+}
+
+function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `southern-pos-backup-${todayKey()}.json`;
+  link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
 }
 
-function restore(event) {
+function restoreJson(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
     try {
-      state = normalize(JSON.parse(reader.result));
+      state = migrateState(JSON.parse(reader.result));
       saveState();
-      render();
-      alert("นำเข้าข้อมูลสำเร็จ");
+      renderAll();
+      showToast("กู้คืนข้อมูลสำเร็จ");
     } catch {
-      alert("ไฟล์ข้อมูลไม่ถูกต้อง");
+      showToast("ไฟล์ JSON ไม่ถูกต้อง");
     }
   };
   reader.readAsText(file);
-  event.target.value = "";
 }
 
+function resetSeed() {
+  state = structuredClone(SEED);
+  selectedAssetId = state.assets[0].id;
+  saveState();
+  renderAll();
+  showToast("โหลดข้อมูลตัวอย่างใหม่แล้ว");
+}
+
+function syncQueue() {
+  const count = state.queue.length;
+  state.queue = [];
+  saveState();
+  updateSyncState();
+  showToast(count ? `ซิงค์ข้อมูลจำลอง ${count} รายการสำเร็จ` : "ไม่มีข้อมูลรอซิงค์");
+}
+
+function updateSyncState() {
+  const syncState = $("syncState");
+  if (syncState) {
+    syncState.textContent = state.queue.length ? `รอซิงค์ ${state.queue.length}` : "Offline Ready";
+  }
+}
+
+window.toggleDefect = toggleDefect;
 init();

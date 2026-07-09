@@ -1,286 +1,387 @@
 <!doctype html>
 <html lang="th">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>POS ร้านอาหารใต้</title>
-  <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml">
-  <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <div class="app">
-    <aside class="side">
-      <div class="brand">
-        <div class="logo"><img src="assets/app-icon.svg" alt=""></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QC Asset Control</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main id="loginScreen" class="login-shell">
+      <section class="login-panel">
         <div>
-          <h1 data-shop-name>แกงใต้แม่ละม้ายเมืองคอน</h1>
-          <p data-branch>ระบบ POS ร้านอาหาร</p>
+          <p class="eyebrow">Organization QC</p>
+          <h1>QC Asset Control</h1>
+          <p class="muted">ระบบตรวจคุณภาพ ตรวจครุภัณฑ์ สแกน QR/Barcode บันทึกข้อบกพร่อง และออกรายงานในองค์กร</p>
         </div>
-      </div>
-      <nav class="nav">
-        <button class="active" data-route="dashboard">Dashboard</button>
-        <button data-route="pos">ขายหน้าร้าน</button>
-        <button data-route="online">ออเดอร์ออนไลน์</button>
-        <button data-route="orders">บิลและรายงาน</button>
-        <button data-route="shop">จัดการร้านค้า</button>
-        <button data-route="receipt">หัวบิล</button>
-        <button data-route="stock">Stock</button>
-        <button data-route="sellers">ผู้ขายเข้ากะ</button>
-        <button data-route="menu">จัดการเมนู</button>
-      </nav>
-      <div class="shift-card">
-        <span>ผู้ขายประจำกะ</span>
-        <strong data-current-seller>-</strong>
-        <small data-shift-time>-</small>
-      </div>
-    </aside>
+        <form id="loginForm" class="login-form">
+          <label>
+            ชื่อผู้ใช้
+            <input id="username" autocomplete="username" value="admin" required />
+          </label>
+          <label>
+            รหัสผ่าน
+            <input id="password" type="password" autocomplete="current-password" value="admin123" required />
+          </label>
+          <button type="submit">เข้าสู่ระบบ</button>
+          <p class="footer-credit">พัฒนาโปรแกรมโดย Mr.Arthit (ที) พกท 81</p>
+        </form>
+      </section>
+    </main>
 
-    <main class="main">
-      <header class="topbar">
-        <div>
-          <h2 id="pageTitle">ขายหน้าร้าน</h2>
-          <p id="pageSubtitle">เลือกเมนู รับออเดอร์ และปิดบิล</p>
+    <div id="appShell" class="app-shell hidden">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark">QC</span>
+          <div>
+            <strong>Asset Control</strong>
+            <small id="roleBadge">Admin</small>
+          </div>
         </div>
-        <div class="toolbar">
-          <input id="searchInput" type="search" placeholder="ค้นหาเมนู / บิล / สต็อก">
-          <button id="backupBtn" class="ghost">สำรองข้อมูล</button>
-          <label class="ghost import">นำเข้า<input id="restoreInput" type="file" accept="application/json"></label>
+        <nav class="nav">
+          <button class="nav-item active" data-view="dashboard">Dashboard</button>
+          <button class="nav-item" data-view="scanner">Scan</button>
+          <button class="nav-item" data-view="inspection">Inspection</button>
+          <button class="nav-item" data-view="defects">Defects</button>
+          <button class="nav-item" data-view="reports">Reports</button>
+          <button class="nav-item" data-view="database">Database</button>
+        </nav>
+        <div class="sidebar-foot">
+          <p class="footer-credit">พัฒนาโปรแกรมโดย Mr.Arthit (ที) พกท 81</p>
         </div>
-      </header>
+      </aside>
 
-      <section id="view-dashboard" class="view active">
-        <div class="dashboard-kpis">
-          <div class="dash-kpi sales"><span>ยอดขายวันนี้</span><strong id="dashSales">฿0.00</strong><small id="dashBills">0 บิล</small></div>
-          <div class="dash-kpi"><span>ยอดขายออนไลน์</span><strong id="dashOnlineSales">฿0.00</strong><small>ShopeeFood / LINE MAN</small></div>
-          <div class="dash-kpi"><span>มูลค่า Stock</span><strong id="dashStockValue">฿0.00</strong><small id="dashStockItems">0 รายการ</small></div>
-          <div class="dash-kpi alert"><span>ใกล้หมด</span><strong id="dashLowStock">0</strong><small>ควรสั่งซื้อเพิ่ม</small></div>
-        </div>
-        <div class="dashboard-grid">
+      <main class="content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="todayText">วันนี้</p>
+            <h2 id="viewTitle">Dashboard</h2>
+          </div>
+          <div class="top-actions">
+            <button id="notifyBtn" class="icon-button" title="แจ้งเตือน">!</button>
+            <button id="syncBtn">ซิงค์ข้อมูล</button>
+            <button id="logoutBtn" class="secondary">ออกจากระบบ</button>
+          </div>
+        </header>
+
+        <section id="dashboard" class="view active">
+          <div class="metric-grid">
+            <article class="metric"><span>งานที่ตรวจ</span><strong id="totalInspections">0</strong></article>
+            <article class="metric pass"><span>Pass</span><strong id="passRate">0%</strong></article>
+            <article class="metric fail"><span>Fail</span><strong id="failRate">0%</strong></article>
+            <article class="metric warn"><span>รอแก้ไข</span><strong id="openDefects">0</strong></article>
+          </div>
+          <div class="dashboard-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <h3>สถิติรายวัน</h3>
+                <select id="chartMode">
+                  <option value="daily">รายวัน</option>
+                  <option value="monthly">รายเดือน</option>
+                </select>
+              </div>
+              <div id="barChart" class="bar-chart"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h3>สาเหตุที่พบมากที่สุด</h3>
+              </div>
+              <ol id="causeRanking" class="ranking"></ol>
+            </section>
+          </div>
+        </section>
+
+        <section id="scanner" class="view">
+          <div class="work-grid">
+            <section class="panel scanner-panel">
+              <div class="scan-frame">
+                <div class="scan-line"></div>
+                <span>QR / Barcode Scanner</span>
+              </div>
+              <div class="scan-actions">
+                <input id="scanInput" placeholder="สแกนหรือกรอกรหัส เช่น AST-1001" />
+                <button id="scanBtn">ดึงข้อมูล</button>
+              </div>
+              <p class="hint">รองรับการต่อยอดใช้กล้อง Android/Tablet ผ่าน Barcode Detector หรือ plugin สแกนจริง</p>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h3>ข้อมูลสินค้า/ทรัพย์สิน</h3>
+              </div>
+              <div id="assetDetails" class="details empty">ยังไม่ได้เลือกทรัพย์สิน</div>
+            </section>
+          </div>
+        </section>
+
+        <section id="inspection" class="view">
+          <div class="admin-grid">
+            <form id="inspectionAssetAdminForm" class="panel form-grid compact admin-only">
+              <h3>เพิ่มรหัสทรัพย์สิน</h3>
+              <label>
+                รหัสทรัพย์สิน
+                <input id="quickAssetId" placeholder="เช่น AST-1004" required />
+              </label>
+              <label>
+                ชื่อ/รายละเอียด
+                <input id="quickAssetName" placeholder="เช่น เครื่องมือ QC ใหม่" />
+              </label>
+              <button type="submit" class="wide">เพิ่มและเลือกใช้</button>
+            </form>
+
+            <form id="checklistAdminForm" class="panel form-grid compact admin-only">
+              <h3>เพิ่มเช็กลิสต์มาตรฐาน</h3>
+              <label class="wide">
+                รายการเช็กลิสต์
+                <input id="newChecklistItem" placeholder="เช่น Serial Number ตรงกับทะเบียน" required />
+              </label>
+              <button type="submit" class="wide">เพิ่มเช็กลิสต์</button>
+            </form>
+          </div>
+
+          <form id="inspectionForm" class="panel form-grid">
+            <div class="form-header">
+              <h3>ตรวจสอบคุณภาพและทรัพย์สิน</h3>
+              <span id="selectedAssetBadge" class="status neutral">ยังไม่เลือกทรัพย์สิน</span>
+            </div>
+            <label>
+              รหัสทรัพย์สิน
+              <select id="assetSelect" required></select>
+            </label>
+            <label>
+              สถานะงาน
+              <select id="statusSelect">
+                <option>รอตรวจ</option>
+                <option>กำลังตรวจ</option>
+                <option>ผ่าน</option>
+                <option>ไม่ผ่าน</option>
+                <option>แก้ไขแล้ว</option>
+              </select>
+            </label>
+            <label>
+              ผลตรวจ
+              <select id="resultSelect">
+                <option value="Pass">Pass</option>
+                <option value="Fail">Fail</option>
+              </select>
+            </label>
+            <label>
+              คะแนนคุณภาพ
+              <input id="scoreInput" type="number" min="0" max="100" value="95" />
+            </label>
+            <label>
+              สภาพทรัพย์สิน
+              <select id="conditionSelect">
+                <option>ปกติ</option>
+                <option>ชำรุด</option>
+                <option>สูญหาย</option>
+                <option>รอซ่อม</option>
+              </select>
+            </label>
+            <label>
+              แนบรูปก่อนตรวจ
+              <input id="beforePhoto" type="file" accept="image/*" />
+            </label>
+            <label>
+              แนบรูปหลังตรวจ/จุดปัญหา
+              <input id="afterPhoto" type="file" accept="image/*" />
+            </label>
+            <div class="checklist">
+              <h4>เช็กลิสต์มาตรฐาน</h4>
+              <div id="checklistItems" class="checklist-items"></div>
+            </div>
+            <label class="wide">
+              หมายเหตุ
+              <textarea id="notesInput" rows="3" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+            </label>
+            <label>
+              ลายเซ็นผู้ตรวจ
+              <input id="inspectorSign" placeholder="ชื่อผู้ตรวจ" required />
+            </label>
+            <label>
+              ลายเซ็นผู้อนุมัติ
+              <input id="approverSign" placeholder="ชื่อผู้อนุมัติ" />
+            </label>
+            <div class="gps-row">
+              <button type="button" id="gpsBtn" class="secondary">บันทึก GPS/เวลา</button>
+              <span id="gpsText" class="hint">ยังไม่มีพิกัด</span>
+            </div>
+            <button type="submit" class="wide">บันทึกการตรวจ</button>
+          </form>
+        </section>
+
+        <section id="defects" class="view">
+          <div class="work-grid">
+            <form id="defectForm" class="panel form-grid compact">
+              <h3>บันทึกข้อบกพร่อง</h3>
+              <label>
+                ทรัพย์สิน
+                <select id="defectAssetSelect" required></select>
+              </label>
+                <label>
+                  ประเภทปัญหา
+                <select id="defectType"></select>
+                </label>
+              <label>
+                สาเหตุ
+                <input id="defectCause" placeholder="เช่น ใช้งานหนัก, อุปกรณ์เสื่อม" required />
+              </label>
+              <label class="wide">
+                หมายเหตุ
+                <textarea id="defectNote" rows="3"></textarea>
+              </label>
+              <button type="submit">เพิ่มข้อบกพร่อง</button>
+            </form>
+            <section class="panel">
+              <div class="panel-head">
+                <h3>รายการปัญหา</h3>
+                <select id="defectFilter">
+                  <option value="all">ทั้งหมด</option>
+                  <option value="open">ยังไม่แก้ไข</option>
+                  <option value="resolved">แก้ไขแล้ว</option>
+                </select>
+              </div>
+              <div id="defectList" class="list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="reports" class="view">
           <section class="panel">
             <div class="panel-head">
-              <div><h3>ยอดขายแยกช่องทาง</h3><p>สรุปยอดขายวันนี้ตามหน้าร้านและออนไลน์</p></div>
+              <h3>ค้นหาย้อนหลังและรายงาน</h3>
+              <div class="inline-actions">
+                <button id="exportCsvBtn">Export Excel/CSV</button>
+                <button id="printBtn" class="secondary">พิมพ์/PDF</button>
+              </div>
             </div>
-            <div id="channelSummary" class="summary-list"></div>
-          </section>
-          <section class="panel">
-            <div class="panel-head">
-              <div><h3>เมนูขายดี</h3><p>จัดอันดับจากประวัติบิลทั้งหมด</p></div>
-            </div>
-            <div id="bestSellerSummary" class="summary-list"></div>
-          </section>
-          <section class="panel wide-panel">
-            <div class="panel-head">
-              <div><h3>Stock คงเหลือ</h3><p>มูลค่าคงเหลือและสถานะการสั่งซื้อ</p></div>
-              <button class="primary-soft" data-route-shortcut="stock">ไปหน้า Stock</button>
-            </div>
+            <input id="reportSearch" class="search" placeholder="ค้นหารหัส ชื่อ สถานะ หรือผลตรวจ" />
             <div class="table-wrap">
               <table>
-                <thead><tr><th>วัตถุดิบ</th><th>คงเหลือ</th><th>ต้นทุน/หน่วย</th><th>มูลค่า</th><th>สถานะ</th></tr></thead>
-                <tbody id="dashboardStockTable"></tbody>
+                <thead>
+                  <tr>
+                    <th>วันที่</th>
+                    <th>รหัส</th>
+                    <th>ชื่อ</th>
+                    <th>ผล</th>
+                    <th>สภาพ</th>
+                    <th>คะแนน</th>
+                    <th>ผู้ตรวจ</th>
+                  </tr>
+                </thead>
+                <tbody id="reportRows"></tbody>
               </table>
             </div>
           </section>
-        </div>
-      </section>
+        </section>
 
-      <section id="view-pos" class="view">
-        <div class="pos-grid">
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h3>เมนูอาหารใต้</h3>
-                <p>แตะเมนูเพื่อเพิ่มลงบิล</p>
+        <section id="database" class="view">
+          <div class="admin-grid">
+            <form id="assetAdminForm" class="panel form-grid compact admin-only">
+              <h3>เพิ่มทรัพย์สิน</h3>
+              <label>
+                รหัสทรัพย์สิน
+                <input id="newAssetId" placeholder="เช่น AST-1004" required />
+              </label>
+              <label>
+                ชื่อทรัพย์สิน
+                <input id="newAssetName" placeholder="เช่น เครื่องสแกน Barcode" required />
+              </label>
+              <label>
+                หมวดหมู่
+                <input id="newAssetCategory" placeholder="เช่น ครุภัณฑ์ IT" required />
+              </label>
+              <label>
+                ที่ตั้ง
+                <input id="newAssetLocation" placeholder="เช่น ชั้น 3 / คลังกลาง" required />
+              </label>
+              <label>
+                ผู้รับผิดชอบ
+                <input id="newAssetOwner" placeholder="เช่น ฝ่ายคลัง" required />
+              </label>
+              <label>
+                สถานะเริ่มต้น
+                <select id="newAssetStatus">
+                  <option>รอตรวจ</option>
+                  <option>กำลังตรวจ</option>
+                  <option>ผ่าน</option>
+                  <option>ไม่ผ่าน</option>
+                  <option>แก้ไขแล้ว</option>
+                </select>
+              </label>
+              <button type="submit" class="wide">เพิ่มทรัพย์สิน</button>
+            </form>
+
+            <form id="defectTypeAdminForm" class="panel form-grid compact admin-only">
+              <h3>เพิ่มประเภทปัญหา</h3>
+              <label class="wide">
+                ชื่อประเภทปัญหา
+                <input id="newDefectType" placeholder="เช่น สายไฟชำรุด" required />
+              </label>
+              <button type="submit" class="wide">เพิ่มประเภทปัญหา</button>
+            </form>
+
+            <form id="userAdminForm" class="panel form-grid compact admin-only">
+              <h3>เพิ่ม User และสิทธิ์</h3>
+              <label>
+                Username
+                <input id="newUsername" autocomplete="off" placeholder="เช่น inspector01" required />
+              </label>
+              <label>
+                Password
+                <input id="newUserPassword" type="password" autocomplete="new-password" placeholder="รหัสผ่าน" required />
+              </label>
+              <label class="wide">
+                สิทธิ์การใช้งาน
+                <select id="newUserRole">
+                  <option>Admin</option>
+                  <option>QC</option>
+                  <option>Supervisor</option>
+                  <option>Viewer</option>
+                </select>
+              </label>
+              <button type="submit" class="wide">เพิ่ม User</button>
+            </form>
+          </div>
+
+          <div class="work-grid database-grid">
+            <section class="panel">
+              <div class="panel-head">
+                <h3>ฐานข้อมูลและสำรองข้อมูล</h3>
               </div>
-              <div id="categoryTabs" class="tabs"></div>
-            </div>
-            <div id="menuCards" class="menu-cards"></div>
-          </section>
-
-          <aside class="panel bill-panel">
-            <div class="bill-head">
-              <label>โต๊ะ / ช่องทาง<select id="tableSelect"></select></label>
-              <label>ผู้ขาย<select id="sellerSelect"></select></label>
-            </div>
-            <div class="bill-meta">
-              <strong id="billNo">บิลใหม่</strong>
-              <span id="billQty">0 รายการ</span>
-            </div>
-            <div id="cartItems" class="cart"></div>
-            <div class="summary">
-              <div><span>ยอดอาหาร</span><strong id="sumSub">฿0.00</strong></div>
-              <div><span>ส่วนลด</span><input id="discountInput" type="number" min="0" step="1" value="0"></div>
-              <div><span>ค่าบริการ</span><strong id="sumService">฿0.00</strong></div>
-              <div><span>ภาษี</span><strong id="sumTax">฿0.00</strong></div>
-              <div class="total"><span>รวมสุทธิ</span><strong id="sumTotal">฿0.00</strong></div>
-            </div>
-            <div class="pay">
-              <div class="pay-tabs" id="payTabs">
-                <button class="active" data-pay="เงินสด">เงินสด</button>
-                <button data-pay="โอน">โอน</button>
-                <button data-pay="บัตร">บัตร</button>
-                <button data-pay="แพลตฟอร์ม">แพลตฟอร์ม</button>
+              <p class="muted">ต้นแบบนี้ใช้ LocalStorage สำหรับ offline-first และสามารถต่อ MySQL หรือ SQL Server ผ่าน API backend ได้</p>
+              <div class="stack">
+                <button id="backupBtn">สำรองข้อมูล JSON</button>
+                <label class="file-label">
+                  กู้คืนข้อมูล JSON
+                  <input id="restoreInput" type="file" accept="application/json" />
+                </label>
+                <button id="seedBtn" class="secondary">โหลดข้อมูลตัวอย่างใหม่</button>
               </div>
-              <label>รับเงิน<input id="paidInput" type="number" min="0" step="1"></label>
-              <div class="change">เงินทอน <strong id="changeText">฿0.00</strong></div>
-              <div class="bill-actions">
-                <button id="clearBillBtn" class="danger-soft">ล้างบิล</button>
-                <button id="checkoutBtn" class="primary">ชำระเงิน / พิมพ์</button>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h3>รายการทรัพย์สิน</h3>
               </div>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-      <section id="view-online" class="view">
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <h3>ออเดอร์ออนไลน์</h3>
-              <p>รับออเดอร์จากแพลตฟอร์มเดลิเวอรี แล้วส่งเข้าหน้าขายทันที</p>
-            </div>
+              <div id="assetList" class="list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h3>ประเภทปัญหา</h3>
+              </div>
+              <div id="defectTypeList" class="list"></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head">
+                <h3>User และสิทธิ์</h3>
+              </div>
+              <div id="userList" class="list"></div>
+            </section>
           </div>
-          <div id="onlineChannels" class="online-grid"></div>
-        </div>
-        <div class="panel online-help">
-          <h3>ขั้นตอนรับออเดอร์</h3>
-          <div class="steps">
-            <div><strong>1</strong><span>เลือกระบบ ShopeeFood หรือ LINE MAN</span></div>
-            <div><strong>2</strong><span>เพิ่มรายการอาหารตามออเดอร์ลูกค้า</span></div>
-            <div><strong>3</strong><span>เลือกชำระแบบแพลตฟอร์ม แล้วปิดบิล/พิมพ์ใบสั่งอาหาร</span></div>
-          </div>
-        </div>
-      </section>
+        </section>
+      </main>
+    </div>
 
-      <section id="view-orders" class="view">
-        <div class="kpis">
-          <div><span>ยอดขายวันนี้</span><strong id="kpiSales">฿0.00</strong></div>
-          <div><span>จำนวนบิล</span><strong id="kpiBills">0</strong></div>
-          <div><span>เฉลี่ยต่อบิล</span><strong id="kpiAvg">฿0.00</strong></div>
-          <div><span>เมนูขายดี</span><strong id="kpiBest">-</strong></div>
-        </div>
-        <div class="panel">
-          <div class="panel-head">
-            <div><h3>ประวัติบิล</h3><p>ดูย้อนหลังและพิมพ์ใบเสร็จซ้ำ</p></div>
-            <button id="printReportBtn" class="ghost">พิมพ์รายงาน</button>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>เวลา</th><th>เลขบิล</th><th>โต๊ะ</th><th>ผู้ขาย</th><th>ชำระ</th><th>ยอดสุทธิ</th><th></th></tr></thead>
-              <tbody id="ordersTable"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section id="view-shop" class="view">
-        <div class="panel">
-          <div class="panel-head"><div><h3>จัดการร้านค้า</h3><p>ข้อมูลร้านสำหรับระบบและใบเสร็จ</p></div></div>
-          <form id="shopForm" class="form-grid">
-            <label>ชื่อร้าน<input name="name" required></label>
-            <label>สาขา<input name="branch"></label>
-            <label>เบอร์โทร<input name="phone"></label>
-            <label>เลขผู้เสียภาษี<input name="taxId"></label>
-            <label class="wide">ที่อยู่<textarea name="address" rows="3"></textarea></label>
-            <label>ค่าบริการ (%)<input name="serviceRate" type="number" min="0" step="0.1"></label>
-            <label>ภาษี (%)<input name="taxRate" type="number" min="0" step="0.1"></label>
-            <button class="primary wide" type="submit">บันทึกข้อมูลร้าน</button>
-          </form>
-        </div>
-      </section>
-
-      <section id="view-receipt" class="view">
-        <div class="panel">
-          <div class="panel-head"><div><h3>หัวบิลและข้อความท้ายบิล</h3><p>ปรับข้อความที่ปรากฏบนใบเสร็จ</p></div></div>
-          <form id="receiptForm" class="form-grid">
-            <label>ชื่อหัวบิล<input name="title"></label>
-            <label>เลขเครื่อง POS<input name="posId"></label>
-            <label class="wide">ข้อความหัวบิล<textarea name="headerNote" rows="3"></textarea></label>
-            <label class="wide">ข้อความท้ายบิล<textarea name="footerNote" rows="3"></textarea></label>
-            <button class="primary wide" type="submit">บันทึกหัวบิล</button>
-          </form>
-          <div id="receiptPreview" class="receipt-preview"></div>
-        </div>
-      </section>
-
-      <section id="view-stock" class="view">
-        <div class="panel">
-          <div class="panel-head">
-            <div><h3>Stock วัตถุดิบ</h3><p>จำนวนคงเหลือ ต้นทุน และจุดสั่งซื้อ</p></div>
-            <button id="newStockBtn" class="primary-soft">เพิ่มวัตถุดิบ</button>
-          </div>
-          <div id="stockCards" class="stock-cards"></div>
-        </div>
-      </section>
-
-      <section id="view-sellers" class="view">
-        <div class="panel">
-          <div class="panel-head">
-            <div><h3>จัดการผู้ขายที่เข้ากะ</h3><p>เปิด/ปิดกะ เลือกผู้ขายประจำหน้าร้าน</p></div>
-            <button id="newSellerBtn" class="primary-soft">เพิ่มผู้ขาย</button>
-          </div>
-          <div id="sellerCards" class="seller-cards"></div>
-        </div>
-      </section>
-
-      <section id="view-menu" class="view">
-        <div class="panel">
-          <div class="panel-head">
-            <div><h3>จัดการเมนู</h3><p>เพิ่มรูปอาหาร ราคา หมวด และสถานะเปิดขาย</p></div>
-            <button id="newMenuBtn" class="primary-soft">เพิ่มเมนู</button>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>รูป</th><th>เมนู</th><th>หมวด</th><th>ราคา</th><th>สถานะ</th><th></th></tr></thead>
-              <tbody id="menuTable"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <dialog id="menuDialog">
-    <form id="menuForm" method="dialog" class="dialog-form">
-      <h3>เมนูอาหาร</h3>
-      <input type="hidden" name="id">
-      <label>ชื่อเมนู<input name="name" required></label>
-      <label>หมวด<input name="category" required></label>
-      <label>ราคา<input name="price" type="number" min="0" step="1" required></label>
-      <label>รูปอาหาร<input name="imageFile" type="file" accept="image/*"></label>
-      <img id="menuImagePreview" class="image-preview" alt="">
-      <label class="check"><input name="available" type="checkbox"> เปิดขาย</label>
-      <div class="dialog-actions"><button type="button" data-close-dialog class="ghost">ยกเลิก</button><button class="primary" value="default">บันทึก</button></div>
-    </form>
-  </dialog>
-
-  <dialog id="stockDialog">
-    <form id="stockForm" method="dialog" class="dialog-form">
-      <h3>วัตถุดิบ</h3>
-      <input type="hidden" name="id">
-      <label>ชื่อวัตถุดิบ<input name="name" required></label>
-      <label>จำนวนคงเหลือ<input name="qty" type="number" min="0" step="0.1" required></label>
-      <label>หน่วย<input name="unit" required></label>
-      <label>ราคาต้นทุนต่อหน่วย<input name="cost" type="number" min="0" step="0.01"></label>
-      <label>จุดสั่งซื้อ<input name="reorder" type="number" min="0" step="0.1"></label>
-      <div class="dialog-actions"><button type="button" data-close-dialog class="ghost">ยกเลิก</button><button class="primary" value="default">บันทึก</button></div>
-    </form>
-  </dialog>
-
-  <dialog id="sellerDialog">
-    <form id="sellerForm" method="dialog" class="dialog-form">
-      <h3>ผู้ขาย</h3>
-      <input type="hidden" name="id">
-      <label>ชื่อผู้ขาย<input name="name" required></label>
-      <label>ตำแหน่ง<input name="role" placeholder="แคชเชียร์ / เจ้าของร้าน"></label>
-      <label>เวลาเข้ากะ<input name="shiftStart" type="time"></label>
-      <label>เวลาออกกะ<input name="shiftEnd" type="time"></label>
-      <label class="check"><input name="active" type="checkbox"> อยู่ในกะ</label>
-      <div class="dialog-actions"><button type="button" data-close-dialog class="ghost">ยกเลิก</button><button class="primary" value="default">บันทึก</button></div>
-    </form>
-  </dialog>
-
-  <div id="printArea" class="print-area"></div>
-  <script src="app.js"></script>
-</body>
+    <div id="toast" class="toast hidden"></div>
+    <script src="app.js"></script>
+  </body>
 </html>
